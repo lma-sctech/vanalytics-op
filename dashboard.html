@@ -1318,7 +1318,7 @@
         const shipRate = kpis.total_commandes ? ((kpis.nb_expeditions_total||0) / kpis.total_commandes * 100) : 0;
         iCmd.innerHTML = [
           `<li>Pic de commandes: <strong>${topMoisCmd?.periode || '-'}</strong> (${fmt.num(topMoisCmd?.nb_commandes || 0)} commandes).</li>`,
-          `<li>Risque annulation: <strong>${topMoisAnn?.periode || '-'}</strong> (${fmt.num(topMoisAnn?.taux_annulation || 0)}%).</li>`,
+          `<li>Annulation: <strong>${topMoisAnn?.periode || '-'}</strong> (${fmt.num(topMoisAnn?.taux_annulation || 0)}%).</li>`,
           `<li>Taux expedition global: <strong>${fmt.num(shipRate)}%</strong>.</li>`
         ].join('');
       }

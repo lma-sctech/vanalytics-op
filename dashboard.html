@@ -1,0 +1,1715 @@
+﻿<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard SBO v2</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg: #f6f8fb;
+      --card: #ffffff;
+      --ink: #18212f;
+      --muted: #5b667a;
+      --line: #dce4f0;
+      --brand: #0a84ff;
+      --brand-2: #16a085;
+      --warn: #b7791f;
+      --bad: #c53030;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      color: var(--ink);
+      background: radial-gradient(circle at top right, #e9f4ff 0%, var(--bg) 40%);
+    }
+    .header {
+      padding: 18px 22px;
+      border-bottom: 1px solid var(--line);
+      background: var(--card);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    h1 { margin: 0; font-size: 1.35rem; }
+    .period { margin-top: 6px; color: var(--muted); font-size: 0.92rem; }
+    .tabs {
+      margin-top: 14px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .tab {
+      border: 1px solid var(--line);
+      background: #f1f5fb;
+      color: var(--ink);
+      padding: 8px 14px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .tab.active {
+      background: var(--brand);
+      color: #fff;
+      border-color: var(--brand);
+    }
+    .container { max-width: 1400px; margin: 16px auto; padding: 0 16px 24px; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .kpi {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px;
+    }
+    .kpi .v { font-size: 1.4rem; font-weight: 700; color: var(--brand); }
+    .kpi .l { margin-top: 4px; font-size: 0.8rem; color: var(--muted); text-transform: uppercase; }
+    .section {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      margin-bottom: 14px;
+      overflow: hidden;
+    }
+    .section h2 {
+      margin: 0;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      font-size: 1rem;
+    }
+    .kpi-title {
+      position: relative;
+      cursor: help;
+    }
+    .kpi-title::after {
+      content: " i";
+      font-size: 0.78rem;
+      color: var(--muted);
+      font-weight: 700;
+    }
+    .body { padding: 14px; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 12px;
+    }
+    .small-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 12px;
+    }
+    .table-controls {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+      align-items: center;
+    }
+    .table-controls label {
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    .table-controls select, .table-controls button {
+      border: 1px solid var(--line);
+      background: #f8fbff;
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 0.82rem;
+      cursor: pointer;
+    }
+    .logout-btn {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-size: 0.82rem;
+      cursor: pointer;
+    }
+    .theme-toggle {
+      position: relative;
+      width: 76px;
+      height: 38px;
+      border-radius: 999px;
+      background: linear-gradient(120deg, #dbeafe, #bfdbfe);
+      border: 1px solid #b6d0f5;
+      box-shadow: inset 0 2px 6px rgba(0,0,0,0.08);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      overflow: hidden;
+    }
+    .theme-toggle::before {
+      content: "";
+      position: absolute;
+      top: 3px;
+      left: 4px;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #fff, #fef08a 65%);
+      box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+      transition: transform 0.35s ease, background 0.35s ease;
+    }
+    .theme-toggle .icon {
+      position: absolute;
+      top: 9px;
+      font-size: 0.85rem;
+      opacity: 0.8;
+      transition: opacity 0.25s;
+    }
+    .theme-toggle .sun { left: 11px; }
+    .theme-toggle .moon { right: 11px; }
+
+    body[data-theme="dark"] {
+      --bg: #0a1020;
+      --card: #101a31;
+      --ink: #eaf0ff;
+      --muted: #9db0d7;
+      --line: #243457;
+      --brand: #4cc9f0;
+      --brand-2: #34d399;
+      background: radial-gradient(circle at top right, #132646 0%, var(--bg) 42%);
+    }
+    body[data-theme="dark"] .tab {
+      background: #0f1a33;
+      border-color: #2a4068;
+      color: var(--ink);
+    }
+    body[data-theme="dark"] .tab.active {
+      background: linear-gradient(90deg, #38bdf8, #34d399);
+      color: #041018;
+      border-color: transparent;
+    }
+    body[data-theme="dark"] .theme-toggle {
+      background: linear-gradient(120deg, #111b32, #1f2f52);
+      border-color: #334d7d;
+    }
+    body[data-theme="dark"] .theme-toggle::before {
+      transform: translateX(38px);
+      background: radial-gradient(circle at 30% 30%, #f8fafc, #dbeafe 70%);
+    }
+    body[data-theme="dark"] .theme-toggle .sun { opacity: 0.35; }
+    body[data-theme="dark"] .theme-toggle .moon { opacity: 1; }
+    body:not([data-theme="dark"]) .theme-toggle .sun { opacity: 1; }
+    body:not([data-theme="dark"]) .theme-toggle .moon { opacity: 0.35; }
+    body[data-theme="dark"] .logout-btn {
+      background: #16233f;
+      border-color: #35507f;
+      color: #d9e7ff;
+    }
+    body[data-theme="dark"] .hero-card {
+      background: #0f1a33;
+      border-color: #2e4570;
+    }
+    body[data-theme="dark"] th {
+      background: #16233f;
+      color: #dce8ff;
+    }
+    body[data-theme="dark"] td {
+      color: #dce8ff;
+    }
+    body[data-theme="dark"] .table-controls select,
+    body[data-theme="dark"] .table-controls button {
+      background: #16233f;
+      border-color: #35507f;
+      color: #dce8ff;
+    }
+    body[data-theme="dark"] .doc-card {
+      background: #0f1a33;
+      border-color: #2e4570;
+    }
+    body[data-theme="dark"] .doc-card h3 {
+      color: #e8f0ff;
+    }
+    body[data-theme="dark"] .doc-card p {
+      color: #a9bbdf;
+    }
+    body[data-theme="dark"] .notice.info {
+      background: #10233f;
+      border-color: #2f538b;
+      color: #b9d8ff;
+    }
+    body[data-theme="dark"] .notice.warn {
+      background: #302514;
+      border-color: #7a5a2a;
+      color: #ffdca5;
+    }
+    .chart-wrap { height: 290px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th, td { border-bottom: 1px solid var(--line); padding: 9px; text-align: left; }
+    th { background: #f7faff; }
+    .tr { text-align: right; }
+    .msg {
+      padding: 14px;
+      border-radius: 10px;
+      background: #fff8e8;
+      border: 1px solid #f1d28d;
+      color: #7a5600;
+    }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 12px;
+    }
+    .hero-card {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px;
+      background: #ffffff;
+    }
+    .hero-card .title {
+      font-size: 0.8rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .hero-card .value {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .hero-card .desc {
+      font-size: 0.86rem;
+      color: var(--muted);
+    }
+    .pill {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      margin-left: 8px;
+      border: 1px solid transparent;
+    }
+    .pill.good { background: #e7f8ef; color: #117a49; border-color: #bbe7cf; }
+    .pill.warn { background: #fff4df; color: #8a5a00; border-color: #f4d599; }
+    .pill.bad { background: #ffe9e9; color: #a72828; border-color: #f5bcbc; }
+    .section-intro {
+      margin: 0 0 10px 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+    .notice {
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: #f8fbff;
+      font-size: 0.9rem;
+      margin-bottom: 12px;
+    }
+    .notice.warn { background: #fff7e8; border-color: #f1d28d; color: #7a5600; }
+    .notice.info { background: #eef7ff; border-color: #b9dafc; color: #0b4b7a; }
+    .insights {
+      margin: 0;
+      padding-left: 18px;
+      color: var(--ink);
+      line-height: 1.5;
+    }
+    .insights li { margin-bottom: 6px; }
+    .doc-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 12px;
+    }
+    .doc-card {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 12px;
+      background: #fff;
+    }
+    .doc-card h3 {
+      margin: 0 0 8px 0;
+      font-size: 0.95rem;
+      scroll-margin-top: 120px;
+    }
+    .doc-card p {
+      margin: 4px 0;
+      font-size: 0.86rem;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+    .kpi-tooltip {
+      position: fixed;
+      z-index: 9999;
+      width: min(420px, 92vw);
+      background: #ffffff;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      box-shadow: 0 14px 36px rgba(0, 0, 0, 0.18);
+      padding: 10px 12px;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(4px);
+      transition: opacity 0.12s ease, transform 0.12s ease;
+    }
+    .kpi-tooltip.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .kpi-tooltip h4 {
+      margin: 0 0 6px 0;
+      font-size: 0.9rem;
+    }
+    .kpi-tooltip p {
+      margin: 3px 0;
+      font-size: 0.82rem;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+    body[data-theme="dark"] .kpi-tooltip {
+      background: #0f1a33;
+      border-color: #2e4570;
+    }
+    body[data-theme="dark"] .kpi-tooltip h4 {
+      color: #e8f0ff;
+    }
+    body[data-theme="dark"] .kpi-tooltip p {
+      color: #a9bbdf;
+    }
+    @media (max-width: 700px) {
+      .header { position: static; }
+      .chart-wrap { height: 240px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-top">
+      <div>
+        <h1>Dashboard SBO v2</h1>
+        <div id="period" class="period">Chargement...</div>
+      </div>
+      <div class="header-actions">
+        <button id="theme-toggle" class="theme-toggle" type="button" title="Basculer le theme">
+          <span class="icon sun">☀</span>
+          <span class="icon moon">☾</span>
+        </button>
+        <button id="logout-btn" class="logout-btn" type="button">Deconnexion</button>
+      </div>
+    </div>
+    <div class="tabs">
+      <button class="tab active" data-panel="commandes">Commandes</button>
+      <button class="tab" data-panel="transport">Transport</button>
+      <button class="tab" data-panel="articles">Articles</button>
+      <button class="tab" data-panel="documentation">Documentation</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="section">
+      <h2>Synthese executive</h2>
+      <div class="body">
+        <div class="hero-grid">
+          <div class="hero-card">
+            <div class="title">Commandes</div>
+            <div id="exec-commandes" class="value">-</div>
+            <div id="exec-commandes-desc" class="desc">-</div>
+          </div>
+          <div class="hero-card">
+            <div class="title">Transport</div>
+            <div id="exec-transport" class="value">-</div>
+            <div id="exec-transport-desc" class="desc">-</div>
+          </div>
+          <div class="hero-card">
+            <div class="title">Articles</div>
+            <div id="exec-articles" class="value">-</div>
+            <div id="exec-articles-desc" class="desc">-</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="panel-commandes" class="panel active">
+      <div class="section">
+        <h2>Synthese actionnable - Commandes</h2>
+        <div class="body">
+          <p class="section-intro">Objectif: suivre la dynamique des commandes, identifier les mois a risque et prioriser les actions de stabilisation.</p>
+          <ul id="insights-commandes" class="insights"></ul>
+        </div>
+      </div>
+      <div id="kpis-commandes" class="kpis"></div>
+
+      <div class="section">
+        <h2 class="kpi-title" data-doc="doc-kpi-total-commandes">Detail mensuel</h2>
+        <div class="body" style="overflow:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Periode</th>
+                <th class="tr">Commandes</th>
+                <th class="tr">CA (EUR)</th>
+                <th class="tr">Mono %</th>
+                <th class="tr">Multi %</th>
+                <th class="tr">Annule %</th>
+                <th class="tr">Expeditions</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-mensuel"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="section">
+          <h2 class="kpi-title" data-doc="doc-kpi-ca-total">Commandes & CA</h2>
+          <div class="body"><div class="chart-wrap"><canvas id="chart-evolution"></canvas></div></div>
+        </div>
+        <div class="section">
+          <h2 class="kpi-title" data-doc="doc-kpi-total-commandes">Activite horaire</h2>
+          <div class="body"><div class="chart-wrap"><canvas id="chart-horaire"></canvas></div></div>
+        </div>
+        <div class="section">
+          <h2 class="kpi-title" data-doc="doc-kpi-total-commandes">Activite par jour</h2>
+          <div class="body"><div class="chart-wrap"><canvas id="chart-jours"></canvas></div></div>
+        </div>
+        <div class="section">
+          <h2 class="kpi-title" data-doc="doc-kpi-taux-annulation">Repartition des etats</h2>
+          <div class="body"><div class="chart-wrap"><canvas id="chart-etats"></canvas></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="panel-transport" class="panel">
+      <div class="section">
+        <h2>Synthese actionnable - Transport</h2>
+        <div class="body">
+          <p class="section-intro">Objectif: piloter la charge logistique, la concentration geographique et la saisonnalite expedition.</p>
+          <ul id="insights-transport" class="insights"></ul>
+        </div>
+      </div>
+      <div id="kpis-transport" class="kpis"></div>
+
+      <div class="grid">
+        <div class="section">
+          <h2 class="kpi-title" data-doc="doc-kpi-tranches-poids">Tranches de poids</h2>
+          <div class="body"><div class="chart-wrap"><canvas id="chart-poids"></canvas></div></div>
+        </div>
+        <div class="section">
+          <h2 class="kpi-title" data-doc="doc-kpi-expeditions-mensuelles">Expeditions mensuelles</h2>
+          <div class="body"><div class="chart-wrap"><canvas id="chart-expeditions"></canvas></div></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2 class="kpi-title" data-doc="doc-kpi-expeditions-mensuelles">Top codes postaux</h2>
+        <div class="body" style="overflow:auto; max-height:420px;">
+          <table>
+            <thead>
+              <tr>
+                <th>CP</th>
+                <th>Ville</th>
+                <th>Pays</th>
+                <th class="tr">Commandes</th>
+                <th class="tr">CA (EUR)</th>
+                <th class="tr">Poids (kg)</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-cp"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="panel-articles" class="panel">
+      <div class="section">
+        <h2>Synthese actionnable - Articles</h2>
+        <div class="body">
+          <p class="section-intro">Objectif: prioriser les references critiques, reduire les dormants/morts et securiser les articles volatils.</p>
+          <ul id="insights-articles" class="insights"></ul>
+        </div>
+      </div>
+      <div id="kpis-articles" class="kpis"></div>
+
+      <div class="grid">
+        <div class="section">
+          <h2 class="kpi-title" data-doc="doc-kpi-abc">ABC volume</h2>
+          <div class="body"><div class="chart-wrap"><canvas id="chart-abc"></canvas></div></div>
+        </div>
+        <div class="section">
+          <h2 class="kpi-title" data-doc="doc-kpi-xyz">XYZ variabilite</h2>
+          <div class="body"><div class="chart-wrap"><canvas id="chart-xyz"></canvas></div></div>
+        </div>
+        <div class="section">
+          <h2 class="kpi-title" data-doc="doc-kpi-demande-mois">Saisonnalite mensuelle (unites)</h2>
+          <div class="body"><div class="chart-wrap"><canvas id="chart-saison"></canvas></div></div>
+        </div>
+        <div class="section">
+          <h2 class="kpi-title" data-doc="doc-kpi-pics">Pics de demande</h2>
+          <div class="body"><div class="chart-wrap"><canvas id="chart-pics"></canvas></div></div>
+        </div>
+        <div class="section">
+          <h2 class="kpi-title" data-doc="doc-kpi-demande-jour">Saisonnalite par jour</h2>
+          <div class="body"><div class="chart-wrap"><canvas id="chart-saison-jours"></canvas></div></div>
+        </div>
+        <div class="section">
+          <h2 class="kpi-title" data-doc="doc-kpi-demande-jour">Saisonnalite par heure</h2>
+          <div class="body"><div class="chart-wrap"><canvas id="chart-saison-heures"></canvas></div></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2 class="kpi-title" data-doc="doc-kpi-abcxyz">Matrice ABC-XYZ</h2>
+        <div class="body" style="overflow:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Classe</th>
+                <th class="tr">Nb articles</th>
+                <th class="tr">Volume</th>
+                <th class="tr">Part volume %</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-abcxyz"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2 class="kpi-title" data-doc="doc-kpi-abc">Pareto ABC (detail)</h2>
+        <div class="body" style="overflow:auto; max-height:360px;">
+          <div class="table-controls">
+            <label>Taille page</label>
+            <select id="pareto-page-size">
+              <option value="20">20</option>
+              <option value="50" selected>50</option>
+              <option value="100">100</option>
+            </select>
+            <label>Tri</label>
+            <select id="pareto-sort">
+              <option value="volume_desc">Volume desc</option>
+              <option value="volume_asc">Volume asc</option>
+              <option value="part_desc">Part desc</option>
+              <option value="part_asc">Part asc</option>
+              <option value="ref_asc">Ref A-Z</option>
+            </select>
+            <button id="pareto-prev" type="button">Prev</button>
+            <button id="pareto-next" type="button">Next</button>
+            <button id="pareto-all" type="button">Voir tout</button>
+            <span id="pareto-page-label"></span>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Ref</th>
+                <th>Designation</th>
+                <th class="tr">Volume</th>
+                <th class="tr">Part %</th>
+                <th>Classe ABC</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-pareto-details"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2 class="kpi-title" data-doc="doc-kpi-volume-total-unites">Top et Flop Articles (unites)</h2>
+        <div class="body" style="overflow:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Ref</th>
+                <th>Designation</th>
+                <th class="tr">Volume</th>
+                <th class="tr">Commandes</th>
+                <th class="tr">Part volume %</th>
+                <th class="tr">CV</th>
+                <th>ABC/XYZ</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-articles-topflop"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="small-grid">
+        <div class="section">
+          <h2 class="kpi-title" data-doc="doc-kpi-dormants">Dormants</h2>
+          <div class="body" style="overflow:auto; max-height:320px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Ref</th>
+                  <th>Designation</th>
+                  <th>Derniere vente</th>
+                  <th class="tr">Volume</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-dormants"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="section">
+          <h2 class="kpi-title" data-doc="doc-kpi-morts">Morts</h2>
+          <div class="body" style="overflow:auto; max-height:320px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Ref</th>
+                  <th>Designation</th>
+                  <th>Derniere vente</th>
+                  <th class="tr">Volume</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-morts"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="section">
+          <h2 class="kpi-title" data-doc="doc-kpi-xyz">Volatils</h2>
+          <div class="body" style="overflow:auto; max-height:320px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Ref</th>
+                  <th>Designation</th>
+                  <th class="tr">CV</th>
+                  <th class="tr">Demande/jour</th>
+                  <th>Classe XYZ</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-volatils"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2 class="kpi-title" data-doc="doc-kpi-cooc">Co-occurrence Articles</h2>
+        <div class="body" style="overflow:auto; max-height:320px;">
+          <div class="table-controls">
+            <label>Taille page</label>
+            <select id="cooc-page-size">
+              <option value="20">20</option>
+              <option value="40" selected>40</option>
+              <option value="100">100</option>
+            </select>
+            <label>Tri</label>
+            <select id="cooc-sort">
+              <option value="nb_desc">Nb commandes desc</option>
+              <option value="nb_asc">Nb commandes asc</option>
+              <option value="a_asc">Article A A-Z</option>
+            </select>
+            <button id="cooc-prev" type="button">Prev</button>
+            <button id="cooc-next" type="button">Next</button>
+            <button id="cooc-all" type="button">Voir tout</button>
+            <span id="cooc-page-label"></span>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Article A</th>
+                <th>Designation A</th>
+                <th>Article B</th>
+                <th>Designation B</th>
+                <th class="tr">Nb commandes</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-cooc"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="small-grid">
+        <div class="section">
+          <h2 class="kpi-title" data-doc="doc-kpi-qualite">Qualite demande - Annulation</h2>
+          <div class="body" style="overflow:auto; max-height:320px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Ref</th>
+                  <th>Designation</th>
+                  <th class="tr">Taux annulation %</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-q-annulation"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="section">
+          <h2 class="kpi-title" data-doc="doc-kpi-qualite">Qualite demande - Rejet</h2>
+          <div class="body" style="overflow:auto; max-height:320px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Ref</th>
+                  <th>Designation</th>
+                  <th class="tr">Taux rejet %</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-q-rejet"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="section">
+          <h2 class="kpi-title" data-doc="doc-kpi-qualite">Qualite demande - Expedition</h2>
+          <div class="body" style="overflow:auto; max-height:320px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Ref</th>
+                  <th>Designation</th>
+                  <th class="tr">Taux expedie %</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-q-expedie"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="small-grid">
+        <div class="section">
+          <h2 class="kpi-title" data-doc="doc-kpi-geo">Geographie - Top global</h2>
+          <div class="body" style="overflow:auto; max-height:320px;">
+            <div class="table-controls">
+              <label>Taille page</label>
+              <select id="geo-global-page-size">
+                <option value="20">20</option>
+                <option value="50" selected>50</option>
+                <option value="100">100</option>
+              </select>
+              <label>Tri</label>
+              <select id="geo-global-sort">
+                <option value="vol_desc">Volume desc</option>
+                <option value="vol_asc">Volume asc</option>
+                <option value="pays_asc">Pays A-Z</option>
+              </select>
+              <button id="geo-global-prev" type="button">Prev</button>
+              <button id="geo-global-next" type="button">Next</button>
+              <button id="geo-global-all" type="button">Voir tout</button>
+              <span id="geo-global-page-label"></span>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Pays</th>
+                  <th>Ville</th>
+                  <th>CP</th>
+                  <th class="tr">Volume</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-geo-global"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="section">
+          <h2 class="kpi-title" data-doc="doc-kpi-geo">Geographie - Top par article</h2>
+          <div class="body" style="overflow:auto; max-height:320px;">
+            <div class="table-controls">
+              <label>Taille page</label>
+              <select id="geo-article-page-size">
+                <option value="20">20</option>
+                <option value="50" selected>50</option>
+                <option value="100">100</option>
+              </select>
+              <label>Tri</label>
+              <select id="geo-article-sort">
+                <option value="vol_desc">Volume desc</option>
+                <option value="vol_asc">Volume asc</option>
+                <option value="ref_asc">Ref A-Z</option>
+              </select>
+              <button id="geo-article-prev" type="button">Prev</button>
+              <button id="geo-article-next" type="button">Next</button>
+              <button id="geo-article-all" type="button">Voir tout</button>
+              <span id="geo-article-page-label"></span>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Ref</th>
+                  <th>Pays</th>
+                  <th>Ville</th>
+                  <th>CP</th>
+                  <th class="tr">Volume</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-geo-article"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2 class="kpi-title" data-doc="doc-kpi-exports">Exports XLSX</h2>
+        <div class="body">
+          <div id="articles-exports-links" class="small-grid"></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Statut</h2>
+        <div class="body">
+          <div id="articles-msg" class="msg"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="panel-documentation" class="panel">
+      <div class="section">
+        <h2>Documentation KPI</h2>
+        <div class="body">
+          <p class="period">Guide fonctionnel : pour chaque indicateur, vous trouverez son objectif, son calcul et la lecture metier.</p>
+        </div>
+      </div>
+
+      <div class="section" id="doc-commandes">
+        <h2>Commandes</h2>
+        <div class="body">
+          <div class="doc-grid">
+            <div class="doc-card" id="doc-kpi-total-commandes">
+              <h3>Total commandes</h3>
+              <p><strong>Utilite :</strong> mesurer le volume global d'activite.</p>
+              <p><strong>Calcul :</strong> nombre de commandes uniques (lignes `is_first_line = 1`).</p>
+              <p><strong>Lecture :</strong> comparez avec les mois precedents pour evaluer la dynamique commerciale.</p>
+            </div>
+            <div class="doc-card" id="doc-kpi-ca-total">
+              <h3>CA total</h3>
+              <p><strong>Utilite :</strong> estimer la valeur business globale.</p>
+              <p><strong>Calcul :</strong> somme de `totalPriceCents` convertie en EUR.</p>
+              <p><strong>Lecture :</strong> utiliser en indicatif si les prix source sont fiables.</p>
+            </div>
+            <div class="doc-card" id="doc-kpi-panier-moyen">
+              <h3>Panier moyen</h3>
+              <p><strong>Utilite :</strong> mesurer la valeur moyenne par commande.</p>
+              <p><strong>Calcul :</strong> moyenne de `totalPriceCents` convertie en EUR.</p>
+              <p><strong>Lecture :</strong> baisse = panier plus petit ou mix produit moins valorise.</p>
+            </div>
+            <div class="doc-card" id="doc-kpi-taux-mono">
+              <h3>Taux mono</h3>
+              <p><strong>Utilite :</strong> comprendre la part de commandes mono-produit.</p>
+              <p><strong>Calcul :</strong> commandes `type_cmd = Mono` / total commandes.</p>
+              <p><strong>Lecture :</strong> taux eleve = potentiel de cross-sell a developper.</p>
+            </div>
+            <div class="doc-card" id="doc-kpi-taux-multi">
+              <h3>Taux multi</h3>
+              <p><strong>Utilite :</strong> suivre la profondeur de panier.</p>
+              <p><strong>Calcul :</strong> commandes `type_cmd = Multi` / total commandes.</p>
+              <p><strong>Lecture :</strong> taux eleve = bonne combinaison des references dans les paniers.</p>
+            </div>
+            <div class="doc-card" id="doc-kpi-taux-annulation">
+              <h3>Taux annulation</h3>
+              <p><strong>Utilite :</strong> controler la qualite operationnelle.</p>
+              <p><strong>Calcul :</strong> commandes `state in canceled,rejected` / total.</p>
+              <p><strong>Lecture :</strong> hausse = signal de friction (stock, delai, qualite ou process).</p>
+            </div>
+            <div class="doc-card">
+              <h3>Graphique “Commandes & CA”</h3>
+              <p><strong>Utilite :</strong> visualiser la tendance volume/valeur dans le temps.</p>
+              <p><strong>Calcul :</strong> agregation mensuelle de `nb_commandes` et `ca_eur`.</p>
+              <p><strong>Lecture :</strong> si commandes montent et CA stagne, panier moyen sous pression.</p>
+            </div>
+            <div class="doc-card">
+              <h3>Activite par heure / jour</h3>
+              <p><strong>Utilite :</strong> dimensionner l'organisation operationnelle.</p>
+              <p><strong>Calcul :</strong> repartition des commandes par `hour` et `day_of_week`.</p>
+              <p><strong>Lecture :</strong> les cretes indiquent les horaires/jours a renforcer.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section" id="doc-transport">
+        <h2>Transport</h2>
+        <div class="body">
+          <div class="doc-grid">
+            <div class="doc-card" id="doc-kpi-nb-expeditions">
+              <h3>Nombre d'expeditions</h3>
+              <p><strong>Utilite :</strong> suivre l'execution logistique reelle.</p>
+              <p><strong>Calcul :</strong> commandes avec `shippedAt` non nul.</p>
+              <p><strong>Lecture :</strong> comparez avec total commandes pour evaluer le taux d'execution.</p>
+            </div>
+            <div class="doc-card" id="doc-kpi-poids-moyen">
+              <h3>Poids moyen</h3>
+              <p><strong>Utilite :</strong> estimer la charge transport moyenne.</p>
+              <p><strong>Calcul :</strong> moyenne de `totalWeight` convertie en kg.</p>
+              <p><strong>Lecture :</strong> hausse durable = pression sur cout/transporteurs.</p>
+            </div>
+            <div class="doc-card" id="doc-kpi-quantite-totale">
+              <h3>Quantite totale</h3>
+              <p><strong>Utilite :</strong> mesurer le flux d'unites a preparer/expedier.</p>
+              <p><strong>Calcul :</strong> somme de `orderItems.quantity`.</p>
+              <p><strong>Lecture :</strong> utile pour calibrer charge preparation et picking.</p>
+            </div>
+            <div class="doc-card" id="doc-kpi-tranches-poids">
+              <h3>Tranches de poids</h3>
+              <p><strong>Utilite :</strong> adapter offre transport, emballage et tarification.</p>
+              <p><strong>Calcul :</strong> classification par tranche (0-1, 1-2, 2-5, 5-10, 10-20, >20kg).</p>
+              <p><strong>Lecture :</strong> la tranche dominante guide la configuration logistique cible.</p>
+            </div>
+            <div class="doc-card" id="doc-kpi-expeditions-mensuelles">
+              <h3>Expeditions mensuelles</h3>
+              <p><strong>Utilite :</strong> suivre la saisonnalite du throughput logistique.</p>
+              <p><strong>Calcul :</strong> groupement mensuel des commandes expediees.</p>
+              <p><strong>Lecture :</strong> les mois de pic servent a anticiper capacite et SLA.</p>
+            </div>
+            <div class="doc-card">
+              <h3>Top codes postaux</h3>
+              <p><strong>Utilite :</strong> identifier les zones geographiques prioritaires.</p>
+              <p><strong>Calcul :</strong> agrégation par `cp/ville/pays` (commandes, CA, poids).</p>
+              <p><strong>Lecture :</strong> permet de prioriser la qualite de service sur les zones majeures.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section" id="doc-articles">
+        <h2>Articles</h2>
+        <div class="body">
+          <div class="doc-grid">
+            <div class="doc-card" id="doc-kpi-nb-articles-vendus">
+              <h3>Articles vendus</h3>
+              <p><strong>Utilite :</strong> mesurer l'activation du catalogue.</p>
+              <p><strong>Calcul :</strong> nombre de `productRef` distincts avec `quantity > 0`.</p>
+              <p><strong>Lecture :</strong> baisse = concentration sur moins de references.</p>
+            </div>
+            <div class="doc-card" id="doc-kpi-volume-total-unites">
+              <h3>Volume total unites</h3>
+              <p><strong>Utilite :</strong> mesurer la demande globale en unites.</p>
+              <p><strong>Calcul :</strong> somme de `orderItems.quantity` sur lignes article valides.</p>
+              <p><strong>Lecture :</strong> base de comparaison pour toutes les parts de volume.</p>
+            </div>
+            <div class="doc-card" id="doc-kpi-demande-jour">
+              <h3>Demande moyenne / jour</h3>
+              <p><strong>Utilite :</strong> dimensionner pilotage quotidien.</p>
+              <p><strong>Calcul :</strong> moyenne du volume journalier agrégé.</p>
+              <p><strong>Lecture :</strong> hausse = pression accrue sur appro/picking.</p>
+            </div>
+            <div class="doc-card" id="doc-kpi-demande-semaine">
+              <h3>Demande moyenne / semaine</h3>
+              <p><strong>Utilite :</strong> piloter reappro hebdo.</p>
+              <p><strong>Calcul :</strong> moyenne des volumes hebdomadaires.</p>
+              <p><strong>Lecture :</strong> sert a caler rythme de réassort.</p>
+            </div>
+            <div class="doc-card" id="doc-kpi-demande-mois">
+              <h3>Demande moyenne / mois</h3>
+              <p><strong>Utilite :</strong> planifier capacite moyen terme.</p>
+              <p><strong>Calcul :</strong> moyenne des volumes mensuels.</p>
+              <p><strong>Lecture :</strong> comparez aux pics pour anticiper saisonnalite.</p>
+            </div>
+            <div class="doc-card" id="doc-kpi-mono-global">
+              <h3>Taux mono global</h3>
+              <p><strong>Utilite :</strong> comprendre structure des paniers articles.</p>
+              <p><strong>Calcul :</strong> commandes mono / total commandes analysees.</p>
+              <p><strong>Lecture :</strong> taux haut = opportunite d'upsell.</p>
+            </div>
+            <div class="doc-card" id="doc-kpi-multi-global">
+              <h3>Taux multi global</h3>
+              <p><strong>Utilite :</strong> suivre la profondeur panier.</p>
+              <p><strong>Calcul :</strong> commandes multi / total commandes analysees.</p>
+              <p><strong>Lecture :</strong> taux haut = bonne combinaison d'articles.</p>
+            </div>
+            <div class="doc-card" id="doc-kpi-cooc">
+              <h3>Co-occurrence</h3>
+              <p><strong>Utilite :</strong> identifier les couples d'articles vendus ensemble.</p>
+              <p><strong>Calcul :</strong> comptage des paires uniques par commande, tri desc.</p>
+              <p><strong>Lecture :</strong> base pour bundles et recommandations.</p>
+            </div>
+            <div class="doc-card" id="doc-kpi-dormants">
+              <h3>Dormants</h3>
+              <p><strong>Utilite :</strong> detecter les references en faible rotation recente.</p>
+              <p><strong>Calcul :</strong> derniere vente < `max_date - 90 jours`.</p>
+              <p><strong>Lecture :</strong> prioriser relance marketing ou repositionnement.</p>
+            </div>
+            <div class="doc-card" id="doc-kpi-morts">
+              <h3>Morts</h3>
+              <p><strong>Utilite :</strong> isoler les references sans traction durable.</p>
+              <p><strong>Calcul :</strong> sous-ensemble dormant avec derniere vente < `max_date - 180 jours`.</p>
+              <p><strong>Lecture :</strong> cibler de-stockage et rationalisation assortiment.</p>
+            </div>
+            <div class="doc-card" id="doc-kpi-abc">
+              <h3>ABC volume</h3>
+              <p><strong>Utilite :</strong> prioriser les articles critiques.</p>
+              <p><strong>Calcul :</strong> tri volume desc, cumul %, classes A<=80 / B<=95 / C>95.</p>
+              <p><strong>Lecture :</strong> concentrer la disponibilite sur les classes A.</p>
+            </div>
+            <div class="doc-card" id="doc-kpi-xyz">
+              <h3>XYZ variabilite</h3>
+              <p><strong>Utilite :</strong> qualifier la stabilite de demande.</p>
+              <p><strong>Calcul :</strong> CV = std(jour)/moy(jour), classes X<=0.5, Y<=1, Z>1.</p>
+              <p><strong>Lecture :</strong> Z = besoin de suivi et stock securite renforces.</p>
+            </div>
+            <div class="doc-card" id="doc-kpi-abcxyz">
+              <h3>Matrice ABC-XYZ</h3>
+              <p><strong>Utilite :</strong> combiner criticite (ABC) et volatilite (XYZ).</p>
+              <p><strong>Calcul :</strong> concatenation de `abc_class` et `xyz_class`.</p>
+              <p><strong>Lecture :</strong> AX a proteger fortement, CZ a rationaliser.</p>
+            </div>
+            <div class="doc-card" id="doc-kpi-qualite">
+              <h3>Qualite demande</h3>
+              <p><strong>Utilite :</strong> identifier les refs a problemes d'execution.</p>
+              <p><strong>Calcul :</strong> taux annulation/rejet/expedition par article (min 5 commandes).</p>
+              <p><strong>Lecture :</strong> traiter les refs a fort rejet/annulation en priorite.</p>
+            </div>
+            <div class="doc-card" id="doc-kpi-geo">
+              <h3>Distribution geographique</h3>
+              <p><strong>Utilite :</strong> comprendre ou les articles performent.</p>
+              <p><strong>Calcul :</strong> agregation volume et commandes par pays/ville/cp.</p>
+              <p><strong>Lecture :</strong> utile pour ciblage local et allocation logistique.</p>
+            </div>
+            <div class="doc-card" id="doc-kpi-pics">
+              <h3>Pics de demande</h3>
+              <p><strong>Utilite :</strong> detecter les jours de surcharge.</p>
+              <p><strong>Calcul :</strong> volume journalier total, tri desc, top jours affiches.</p>
+              <p><strong>Lecture :</strong> preparer equipe/stock/transport sur ces fenetres.</p>
+            </div>
+            <div class="doc-card" id="doc-kpi-exports">
+              <h3>Exports XLSX</h3>
+              <p><strong>Utilite :</strong> consulter les details complets hors dashboard.</p>
+              <p><strong>Calcul :</strong> generation automatique de fichiers par analyse (top/flop, pareto, dormants, etc.).</p>
+              <p><strong>Lecture :</strong> base de partage client et d'analyse approfondie.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    if (localStorage.getItem('vanalytics_auth') !== '1') {
+      window.location.href = 'login.html';
+    }
+
+    const fmt = {
+      num: (n) => new Intl.NumberFormat('fr-FR').format(Number(n || 0)),
+      eur: (n) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(Number(n || 0))
+    };
+    let currentData = null;
+    const articleUiState = {
+      pareto: { page: 1, pageSize: 50, sort: 'volume_desc', all: false },
+      cooc: { page: 1, pageSize: 40, sort: 'nb_desc', all: false },
+      geoGlobal: { page: 1, pageSize: 50, sort: 'vol_desc', all: false },
+      geoArticle: { page: 1, pageSize: 50, sort: 'vol_desc', all: false }
+    };
+    let articleControlsBound = false;
+
+    function applyTheme(theme) {
+      document.body.setAttribute('data-theme', theme);
+      localStorage.setItem('vanalytics_theme', theme);
+    }
+
+    function setupTheme() {
+      const saved = localStorage.getItem('vanalytics_theme') || 'light';
+      applyTheme(saved);
+      const toggle = document.getElementById('theme-toggle');
+      if (toggle) {
+        toggle.addEventListener('click', () => {
+          const current = document.body.getAttribute('data-theme') || 'light';
+          applyTheme(current === 'dark' ? 'light' : 'dark');
+        });
+      }
+    }
+
+    function setupLogout() {
+      const btn = document.getElementById('logout-btn');
+      if (!btn) return;
+      btn.addEventListener('click', () => {
+        localStorage.removeItem('vanalytics_auth');
+        window.location.href = 'login.html';
+      });
+    }
+
+    function pageSlice(rows, state, labelId) {
+      const total = rows.length;
+      if (state.all) {
+        const lbl = document.getElementById(labelId);
+        if (lbl) lbl.textContent = `Total: ${fmt.num(total)}`;
+        return rows;
+      }
+      const totalPages = Math.max(1, Math.ceil(total / state.pageSize));
+      state.page = Math.min(totalPages, Math.max(1, state.page));
+      const start = (state.page - 1) * state.pageSize;
+      const end = start + state.pageSize;
+      const lbl = document.getElementById(labelId);
+      if (lbl) lbl.textContent = `Page ${state.page}/${totalPages} (${fmt.num(total)})`;
+      return rows.slice(start, end);
+    }
+
+    function bindArticleControls() {
+      if (articleControlsBound) return;
+      const wire = (id, fn) => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('click', fn);
+      };
+      const wireChange = (id, fn) => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', fn);
+      };
+
+      wireChange('pareto-page-size', (e) => { articleUiState.pareto.pageSize = Number(e.target.value); articleUiState.pareto.page = 1; articleUiState.pareto.all = false; renderArticles(currentData); });
+      wireChange('pareto-sort', (e) => { articleUiState.pareto.sort = e.target.value; articleUiState.pareto.page = 1; renderArticles(currentData); });
+      wire('pareto-prev', () => { articleUiState.pareto.page -= 1; renderArticles(currentData); });
+      wire('pareto-next', () => { articleUiState.pareto.page += 1; renderArticles(currentData); });
+      wire('pareto-all', () => { articleUiState.pareto.all = !articleUiState.pareto.all; renderArticles(currentData); });
+
+      wireChange('cooc-page-size', (e) => { articleUiState.cooc.pageSize = Number(e.target.value); articleUiState.cooc.page = 1; articleUiState.cooc.all = false; renderArticles(currentData); });
+      wireChange('cooc-sort', (e) => { articleUiState.cooc.sort = e.target.value; articleUiState.cooc.page = 1; renderArticles(currentData); });
+      wire('cooc-prev', () => { articleUiState.cooc.page -= 1; renderArticles(currentData); });
+      wire('cooc-next', () => { articleUiState.cooc.page += 1; renderArticles(currentData); });
+      wire('cooc-all', () => { articleUiState.cooc.all = !articleUiState.cooc.all; renderArticles(currentData); });
+
+      wireChange('geo-global-page-size', (e) => { articleUiState.geoGlobal.pageSize = Number(e.target.value); articleUiState.geoGlobal.page = 1; articleUiState.geoGlobal.all = false; renderArticles(currentData); });
+      wireChange('geo-global-sort', (e) => { articleUiState.geoGlobal.sort = e.target.value; articleUiState.geoGlobal.page = 1; renderArticles(currentData); });
+      wire('geo-global-prev', () => { articleUiState.geoGlobal.page -= 1; renderArticles(currentData); });
+      wire('geo-global-next', () => { articleUiState.geoGlobal.page += 1; renderArticles(currentData); });
+      wire('geo-global-all', () => { articleUiState.geoGlobal.all = !articleUiState.geoGlobal.all; renderArticles(currentData); });
+
+      wireChange('geo-article-page-size', (e) => { articleUiState.geoArticle.pageSize = Number(e.target.value); articleUiState.geoArticle.page = 1; articleUiState.geoArticle.all = false; renderArticles(currentData); });
+      wireChange('geo-article-sort', (e) => { articleUiState.geoArticle.sort = e.target.value; articleUiState.geoArticle.page = 1; renderArticles(currentData); });
+      wire('geo-article-prev', () => { articleUiState.geoArticle.page -= 1; renderArticles(currentData); });
+      wire('geo-article-next', () => { articleUiState.geoArticle.page += 1; renderArticles(currentData); });
+      wire('geo-article-all', () => { articleUiState.geoArticle.all = !articleUiState.geoArticle.all; renderArticles(currentData); });
+
+      articleControlsBound = true;
+    }
+
+    function mountTabs() {
+      const tabs = document.querySelectorAll('.tab');
+      tabs.forEach((tab) => {
+        tab.addEventListener('click', () => {
+          tabs.forEach((t) => t.classList.remove('active'));
+          tab.classList.add('active');
+          document.querySelectorAll('.panel').forEach((p) => p.classList.remove('active'));
+          document.getElementById(`panel-${tab.dataset.panel}`).classList.add('active');
+        });
+      });
+
+      document.addEventListener('click', (e) => {
+        const link = e.target.closest('.doc-link');
+        if (!link) return;
+        e.preventDefault();
+        tabs.forEach((t) => t.classList.remove('active'));
+        const docTab = document.querySelector('.tab[data-panel="documentation"]');
+        if (docTab) docTab.classList.add('active');
+        document.querySelectorAll('.panel').forEach((p) => p.classList.remove('active'));
+        const docPanel = document.getElementById('panel-documentation');
+        if (docPanel) docPanel.classList.add('active');
+        const target = document.getElementById(link.dataset.doc || '');
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    }
+
+    function setupKpiTitleTooltips() {
+      let tip = document.getElementById('kpi-tooltip');
+      if (!tip) {
+        tip = document.createElement('div');
+        tip.id = 'kpi-tooltip';
+        tip.className = 'kpi-tooltip';
+        document.body.appendChild(tip);
+      }
+
+      const moveTip = (evt) => {
+        const pad = 14;
+        const rect = tip.getBoundingClientRect();
+        let left = evt.clientX + 16;
+        let top = evt.clientY + 16;
+        if (left + rect.width + pad > window.innerWidth) left = evt.clientX - rect.width - 16;
+        if (top + rect.height + pad > window.innerHeight) top = evt.clientY - rect.height - 16;
+        tip.style.left = `${Math.max(pad, left)}px`;
+        tip.style.top = `${Math.max(pad, top)}px`;
+      };
+
+      document.querySelectorAll('.kpi-title[data-doc]').forEach((el) => {
+        el.addEventListener('mouseenter', (evt) => {
+          const docId = el.getAttribute('data-doc');
+          const card = docId ? document.getElementById(docId) : null;
+          if (!card) return;
+          const h3 = card.querySelector('h3')?.textContent || 'Documentation';
+          const ps = [...card.querySelectorAll('p')].slice(0, 3).map((p) => p.textContent || '');
+          tip.innerHTML = `<h4>${h3}</h4>${ps.map((x) => `<p>${x}</p>`).join('')}`;
+          tip.classList.add('show');
+          moveTip(evt);
+        });
+        el.addEventListener('mousemove', moveTip);
+        el.addEventListener('mouseleave', () => {
+          tip.classList.remove('show');
+        });
+      });
+    }
+
+    function kpiCard(value, label, docId = '') {
+      const doc = docId ? `<a href="#${docId}" class="doc-link" data-doc="${docId}" style="color:inherit; text-decoration:underline;">${label}</a>` : label;
+      return `<div class="kpi"><div class="v">${value}</div><div class="l">${doc}</div></div>`;
+    }
+
+    function renderMethodology(data) {
+      const meta = data.meta || {};
+      const validation = meta.validation || {};
+      const stats = validation.stats || {};
+      const txt = [
+        `Source: ${meta.fichier_source || '-'}`,
+        `Periode: ${(data.kpis || {}).periode_debut || '-'} -> ${(data.kpis || {}).periode_fin || '-'}`,
+        `Lignes: ${fmt.num(stats.nb_lignes || 0)} | Commandes: ${fmt.num(stats.nb_commandes || 0)}`,
+        `Seuils: ABC (A<=80%, B<=95%), XYZ (X<=0.5, Y<=1.0), Dormant=90j, Mort=180j, Volatil>=10 unites`
+      ].join(' | ');
+      const el = document.getElementById('methodology-summary');
+      if (el) el.textContent = txt;
+    }
+
+    function buildPill(level, text) {
+      return `<span class="pill ${level}">${text}</span>`;
+    }
+
+    function renderExecutive(data) {
+      const k = data.kpis || {};
+      const m = data.mensuel || [];
+      const t = data.transport || {};
+      const a = data.articles || {};
+
+      const ann = Number(k.taux_annulation_global || 0);
+      const shipRate = k.total_commandes ? (Number(k.nb_expeditions_total || 0) / Number(k.total_commandes)) * 100 : 0;
+      const cmdLevel = ann <= 3 ? 'good' : (ann <= 6 ? 'warn' : 'bad');
+      const cmdLabel = ann <= 3 ? 'Stable' : (ann <= 6 ? 'Vigilance' : 'Alerte');
+      const cmdEl = document.getElementById('exec-commandes');
+      const cmdDesc = document.getElementById('exec-commandes-desc');
+      if (cmdEl) cmdEl.innerHTML = `${fmt.num(k.total_commandes || 0)} cmd ${buildPill(cmdLevel, cmdLabel)}`;
+      if (cmdDesc) cmdDesc.textContent = `Annulation: ${fmt.num(ann)}% | Expedition: ${fmt.num(shipRate)}%. Recommendation: renforcer controle si annulation > 6%.`;
+
+      const topSlice = [...(t.tranches_poids || [])].sort((x, y) => (y.pct || 0) - (x.pct || 0))[0] || {};
+      const trLevel = (topSlice.pct || 0) >= 55 ? 'warn' : 'good';
+      const trLabel = (topSlice.pct || 0) >= 55 ? 'Concentre' : 'Equilibre';
+      const trEl = document.getElementById('exec-transport');
+      const trDesc = document.getElementById('exec-transport-desc');
+      if (trEl) trEl.innerHTML = `${fmt.num(k.nb_expeditions_total || 0)} exp ${buildPill(trLevel, trLabel)}`;
+      if (trDesc) trDesc.textContent = `Tranche dominante: ${topSlice.tranche || '-'} (${fmt.num(topSlice.pct || 0)}%). Recommendation: verifier adequation offre transport.`;
+
+      const morts = (a.morts || []).length;
+      const dormants = (a.dormants || []).length;
+      const artLevel = morts > 300 ? 'bad' : (morts > 150 ? 'warn' : 'good');
+      const artLabel = morts > 300 ? 'Critique' : (morts > 150 ? 'Vigilance' : 'Sous controle');
+      const arEl = document.getElementById('exec-articles');
+      const arDesc = document.getElementById('exec-articles-desc');
+      const nbRefsArt = (a && a.meta && a.meta.nb_references) ? a.meta.nb_references : 0;
+      if (arEl) arEl.innerHTML = `${fmt.num(nbRefsArt)} refs ${buildPill(artLevel, artLabel)}`;
+      if (arDesc) arDesc.textContent = `Dormants: ${fmt.num(dormants)} | Morts: ${fmt.num(morts)}. Recommendation: lancer plan de relance/de-stockage cible.`;
+    }
+
+    function renderInsights(data) {
+      const mensuel = data.mensuel || [];
+      const transport = data.transport || {};
+      const articles = data.articles || {};
+      const kpis = data.kpis || {};
+
+      const iCmd = document.getElementById('insights-commandes');
+      if (iCmd) {
+        const topMoisCmd = [...mensuel].sort((a,b)=>(b.nb_commandes||0)-(a.nb_commandes||0))[0];
+        const topMoisAnn = [...mensuel].sort((a,b)=>(b.taux_annulation||0)-(a.taux_annulation||0))[0];
+        const shipRate = kpis.total_commandes ? ((kpis.nb_expeditions_total||0) / kpis.total_commandes * 100) : 0;
+        iCmd.innerHTML = [
+          `<li>Pic de commandes: <strong>${topMoisCmd?.periode || '-'}</strong> (${fmt.num(topMoisCmd?.nb_commandes || 0)} commandes). Recommendation: preparer capacite equipe sur cette fenetre saisonniere.</li>`,
+          `<li>Risque annulation: <strong>${topMoisAnn?.periode || '-'}</strong> (${fmt.num(topMoisAnn?.taux_annulation || 0)}%). Recommendation: analyser causes (stock, delai, qualite) et plan correctif.</li>`,
+          `<li>Taux expedition global: <strong>${fmt.num(shipRate)}%</strong>. Recommendation: cibler >95% pour stabiliser l'execution.</li>`
+        ].join('');
+      }
+
+      const iTr = document.getElementById('insights-transport');
+      if (iTr) {
+        const tp = [...(transport.tranches_poids || [])].sort((a,b)=>(b.count||0)-(a.count||0))[0];
+        const cp = [...(transport.top_cp || [])].sort((a,b)=>(b.nb_commandes||0)-(a.nb_commandes||0))[0];
+        const expTop = [...(transport.expeditions_mensuelles || [])].sort((a,b)=>(b.nb_expeditions||0)-(a.nb_expeditions||0))[0];
+        iTr.innerHTML = [
+          `<li>Tranche dominante: <strong>${tp?.tranche || '-'}</strong> (${fmt.num(tp?.pct || 0)}% des commandes). Recommendation: adapter packaging/transporteurs a cette charge majoritaire.</li>`,
+          `<li>Zone prioritaire: <strong>${cp?.cp || '-'} ${cp?.ville || ''}</strong> (${fmt.num(cp?.nb_commandes || 0)} commandes). Recommendation: renforcer pilotage local (SLA, cout, delai).</li>`,
+          `<li>Mois expedition max: <strong>${expTop?.mois_nom || '-'}</strong> (${fmt.num(expTop?.nb_expeditions || 0)} exp.). Recommendation: pre-reserver capacite sur les pics.</li>`
+        ].join('');
+      }
+
+      const iArt = document.getElementById('insights-articles');
+      if (iArt) {
+        const top = (articles.top_volume || [])[0] || {};
+        const vol = (articles.volatils || [])[0] || {};
+        iArt.innerHTML = [
+          `<li>Top reference: <strong>${top.productRef || '-'}</strong> ${top.designation ? `(${top.designation})` : ''} avec ${fmt.num(top.volume_unites || 0)} unites. Recommendation: proteger disponibilite et animation commerciale.</li>`,
+          `<li>Dormants: <strong>${fmt.num((articles.dormants || []).length)}</strong> | Morts: <strong>${fmt.num((articles.morts || []).length)}</strong>. Recommendation: activer plan relance, bundles et de-stockage.</li>`,
+          `<li>Volatilite a surveiller: <strong>${vol.productRef || '-'}</strong> (CV=${fmt.num(vol.cv_demande || 0)}). Recommendation: ajuster stock de securite et frequence de suivi.</li>`
+        ].join('');
+      }
+    }
+
+    function renderCommandes(data) {
+      const { kpis, mensuel, repartitions } = data;
+      document.getElementById('period').textContent = `Periode : ${kpis.periode_debut} - ${kpis.periode_fin}`;
+
+      document.getElementById('kpis-commandes').innerHTML = [
+        kpiCard(fmt.num(kpis.total_commandes), 'Commandes', 'doc-kpi-total-commandes'),
+        kpiCard(fmt.eur(kpis.ca_total_eur), 'CA Total', 'doc-kpi-ca-total'),
+        kpiCard(fmt.eur(kpis.panier_moyen_eur), 'Panier Moyen', 'doc-kpi-panier-moyen'),
+        kpiCard(`${kpis.taux_mono_global}%`, 'Mono %', 'doc-kpi-taux-mono'),
+        kpiCard(`${kpis.taux_multi_global}%`, 'Multi %', 'doc-kpi-taux-multi'),
+        kpiCard(`${kpis.taux_annulation_global}%`, 'Annulation %', 'doc-kpi-taux-annulation')
+      ].join('');
+
+      document.getElementById('tbody-mensuel').innerHTML = (mensuel || []).map((m) => `
+        <tr>
+          <td>${m.periode}</td>
+          <td class="tr">${fmt.num(m.nb_commandes)}</td>
+          <td class="tr">${fmt.eur(m.ca_eur)}</td>
+          <td class="tr">${m.taux_mono}%</td>
+          <td class="tr">${m.taux_multi}%</td>
+          <td class="tr">${m.taux_annulation}%</td>
+          <td class="tr">${fmt.num(m.nb_expeditions)}</td>
+        </tr>
+      `).join('');
+
+      new Chart(document.getElementById('chart-evolution'), {
+        type: 'line',
+        data: {
+          labels: mensuel.map((m) => m.mois_nom),
+          datasets: [
+            { label: 'Commandes', data: mensuel.map((m) => m.nb_commandes), borderColor: '#0a84ff', yAxisID: 'y' },
+            { label: 'CA', data: mensuel.map((m) => m.ca_eur), borderColor: '#16a085', yAxisID: 'y1' }
+          ]
+        },
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { position: 'left' }, y1: { position: 'right', grid: { drawOnChartArea: false } } } }
+      });
+
+      new Chart(document.getElementById('chart-horaire'), {
+        type: 'bar',
+        data: {
+          labels: (repartitions.horaire || []).map((h) => `${h.heure}h`),
+          datasets: [{ label: 'Commandes', data: (repartitions.horaire || []).map((h) => h.count), backgroundColor: '#0a84ff' }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+      });
+
+      new Chart(document.getElementById('chart-jours'), {
+        type: 'bar',
+        data: {
+          labels: (repartitions.jours || []).map((j) => j.jour),
+          datasets: [{ label: 'Commandes', data: (repartitions.jours || []).map((j) => j.count), backgroundColor: '#4c9ffe' }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+      });
+
+      new Chart(document.getElementById('chart-etats'), {
+        type: 'doughnut',
+        data: {
+          labels: (repartitions.etats || []).map((e) => e.etat),
+          datasets: [{ data: (repartitions.etats || []).map((e) => e.count), backgroundColor: ['#0a84ff', '#16a085', '#f59e0b', '#ef4444', '#6366f1', '#a855f7'] }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+    }
+
+    function renderTransport(data) {
+      const { kpis, transport } = data;
+      const exp = transport.expeditions_mensuelles || [];
+      const cp = transport.top_cp || [];
+
+      document.getElementById('kpis-transport').innerHTML = [
+        kpiCard(fmt.num(kpis.nb_expeditions_total), 'Expeditions', 'doc-kpi-nb-expeditions'),
+        kpiCard(`${kpis.poids_moyen_kg} kg`, 'Poids moyen', 'doc-kpi-poids-moyen'),
+        kpiCard(fmt.num(kpis.quantite_totale), 'Quantite totale', 'doc-kpi-quantite-totale')
+      ].join('');
+
+      document.getElementById('tbody-cp').innerHTML = cp.map((c) => `
+        <tr>
+          <td>${c.cp}</td>
+          <td>${c.ville}</td>
+          <td>${c.pays}</td>
+          <td class="tr">${fmt.num(c.nb_commandes)}</td>
+          <td class="tr">${fmt.eur(c.ca_eur)}</td>
+          <td class="tr">${c.poids_kg}</td>
+        </tr>
+      `).join('');
+
+      new Chart(document.getElementById('chart-poids'), {
+        type: 'pie',
+        data: {
+          labels: (transport.tranches_poids || []).map((t) => `${t.tranche} (${t.count})`),
+          datasets: [{ data: (transport.tranches_poids || []).map((t) => t.count), backgroundColor: ['#0a84ff', '#16a085', '#22c55e', '#eab308', '#f97316', '#ef4444', '#94a3b8'] }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+
+      new Chart(document.getElementById('chart-expeditions'), {
+        type: 'bar',
+        data: {
+          labels: exp.map((e) => e.mois_nom),
+          datasets: [{ label: 'Expeditions', data: exp.map((e) => e.nb_expeditions), backgroundColor: '#16a085' }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+      });
+    }
+
+    function renderArticles(data) {
+      if (!data) return;
+      const articles = data.articles || {};
+      const el = document.getElementById('articles-msg');
+      if (!articles.meta || articles.meta.status === 'empty') {
+        el.textContent = 'Aucune section "articles" dans dashboard_data_v2.json. Cet onglet est volontairement limite a ce message.';
+        return;
+      }
+
+      el.textContent = `Bloc articles charge (${fmt.num(articles.meta.nb_references || 0)} references).`;
+
+      const totals = articles.totals || {};
+      const monoGlobal = (articles.mono_multi || {}).global || {};
+      document.getElementById('kpis-articles').innerHTML = [
+        kpiCard(fmt.num(totals.nb_articles_vendus || 0), 'Articles vendus', 'doc-kpi-nb-articles-vendus'),
+        kpiCard(fmt.num(totals.volume_total_unites || 0), 'Volume total unites', 'doc-kpi-volume-total-unites'),
+        kpiCard(fmt.num(totals.demande_jour_moy_globale || 0), 'Demande moyenne / jour', 'doc-kpi-demande-jour'),
+        kpiCard(fmt.num(totals.demande_semaine_moy_globale || 0), 'Demande moyenne / semaine', 'doc-kpi-demande-semaine'),
+        kpiCard(fmt.num(totals.demande_mois_moy_globale || 0), 'Demande moyenne / mois', 'doc-kpi-demande-mois'),
+        kpiCard(`${fmt.num(monoGlobal.taux_mono_pct || 0)}%`, 'Taux mono global', 'doc-kpi-mono-global'),
+        kpiCard(`${fmt.num(monoGlobal.taux_multi_pct || 0)}%`, 'Taux multi global', 'doc-kpi-multi-global'),
+        kpiCard(fmt.num((articles.cooccurrence_top || []).length), 'Paires co-occur.', 'doc-kpi-cooc'),
+        kpiCard(fmt.num((articles.dormants || []).length), 'Dormants', 'doc-kpi-dormants'),
+        kpiCard(fmt.num((articles.morts || []).length), 'Morts', 'doc-kpi-morts')
+      ].join('');
+
+      const top = (articles.top_volume || []).slice(0, 10).map((r) => ({ type: 'Top', ...r }));
+      const flop = (articles.flop_volume || []).slice(0, 10).map((r) => ({ type: 'Flop', ...r }));
+      document.getElementById('tbody-articles-topflop').innerHTML = [...top, ...flop].map((r) => `
+        <tr>
+          <td>${r.type}</td>
+          <td>${r.productRef || ''}</td>
+          <td>${r.designation || ''}</td>
+          <td class="tr">${fmt.num(r.volume_unites || 0)}</td>
+          <td class="tr">${fmt.num(r.nb_commandes || 0)}</td>
+          <td class="tr">${fmt.num(r.part_volume_pct || 0)}%</td>
+          <td class="tr">${fmt.num(r.cv_demande || 0)}</td>
+          <td>${r.abc_class || ''}${r.xyz_class ? `/${r.xyz_class}` : ''}</td>
+        </tr>
+      `).join('');
+
+      document.getElementById('tbody-dormants').innerHTML = (articles.dormants || []).slice(0, 30).map((r) => `
+        <tr>
+          <td>${r.productRef || ''}</td>
+          <td>${r.designation || ''}</td>
+          <td>${r.last_sale_date || ''}</td>
+          <td class="tr">${fmt.num(r.volume_unites || 0)}</td>
+        </tr>
+      `).join('');
+
+      document.getElementById('tbody-morts').innerHTML = (articles.morts || []).slice(0, 30).map((r) => `
+        <tr>
+          <td>${r.productRef || ''}</td>
+          <td>${r.designation || ''}</td>
+          <td>${r.last_sale_date || ''}</td>
+          <td class="tr">${fmt.num(r.volume_unites || 0)}</td>
+        </tr>
+      `).join('');
+
+      document.getElementById('tbody-volatils').innerHTML = (articles.volatils || []).slice(0, 30).map((r) => `
+        <tr>
+          <td>${r.productRef || ''}</td>
+          <td>${r.designation || ''}</td>
+          <td class="tr">${fmt.num(r.cv_demande || 0)}</td>
+          <td class="tr">${fmt.num(r.demande_jour_moy || 0)}</td>
+          <td>${r.xyz_class || ''}</td>
+        </tr>
+      `).join('');
+
+      const coocRows = [...(articles.cooccurrence_top || [])];
+      if (articleUiState.cooc.sort === 'nb_asc') coocRows.sort((a, b) => (a.nb_commandes || 0) - (b.nb_commandes || 0));
+      if (articleUiState.cooc.sort === 'nb_desc') coocRows.sort((a, b) => (b.nb_commandes || 0) - (a.nb_commandes || 0));
+      if (articleUiState.cooc.sort === 'a_asc') coocRows.sort((a, b) => String(a.article_a || '').localeCompare(String(b.article_a || '')));
+      const coocPaged = pageSlice(coocRows, articleUiState.cooc, 'cooc-page-label');
+      document.getElementById('tbody-cooc').innerHTML = coocPaged.map((r) => `
+        <tr>
+          <td>${r.article_a || ''}</td>
+          <td>${r.designation_a || ''}</td>
+          <td>${r.article_b || ''}</td>
+          <td>${r.designation_b || ''}</td>
+          <td class="tr">${fmt.num(r.nb_commandes || 0)}</td>
+        </tr>
+      `).join('');
+
+      document.getElementById('tbody-abcxyz').innerHTML = (articles.abc_xyz_matrix || []).map((r) => `
+        <tr>
+          <td>${r.classe || ''}</td>
+          <td class="tr">${fmt.num(r.nb_articles || 0)}</td>
+          <td class="tr">${fmt.num(r.volume_unites || 0)}</td>
+          <td class="tr">${fmt.num(r.part_volume_pct || 0)}%</td>
+        </tr>
+      `).join('');
+
+      const paretoRows = [...(((articles.abc_volume || {}).details || []))];
+      if (articleUiState.pareto.sort === 'volume_desc') paretoRows.sort((a, b) => (b.volume_unites || 0) - (a.volume_unites || 0));
+      if (articleUiState.pareto.sort === 'volume_asc') paretoRows.sort((a, b) => (a.volume_unites || 0) - (b.volume_unites || 0));
+      if (articleUiState.pareto.sort === 'part_desc') paretoRows.sort((a, b) => (b.part_volume_pct || 0) - (a.part_volume_pct || 0));
+      if (articleUiState.pareto.sort === 'part_asc') paretoRows.sort((a, b) => (a.part_volume_pct || 0) - (b.part_volume_pct || 0));
+      if (articleUiState.pareto.sort === 'ref_asc') paretoRows.sort((a, b) => String(a.productRef || '').localeCompare(String(b.productRef || '')));
+      const paretoPaged = pageSlice(paretoRows, articleUiState.pareto, 'pareto-page-label');
+      document.getElementById('tbody-pareto-details').innerHTML = paretoPaged.map((r) => `
+        <tr>
+          <td>${r.productRef || ''}</td>
+          <td>${r.designation || ''}</td>
+          <td class="tr">${fmt.num(r.volume_unites || 0)}</td>
+          <td class="tr">${fmt.num(r.part_volume_pct || 0)}%</td>
+          <td>${r.abc_class || ''}</td>
+        </tr>
+      `).join('');
+
+      const q = articles.qualite_demande || {};
+      document.getElementById('tbody-q-annulation').innerHTML = (q.top_taux_annulation || []).slice(0, 30).map((r) => `
+        <tr>
+          <td>${r.productRef || ''}</td>
+          <td>${r.designation || ''}</td>
+          <td class="tr">${fmt.num(r.taux_annulation_pct || 0)}%</td>
+        </tr>
+      `).join('');
+      document.getElementById('tbody-q-rejet').innerHTML = (q.top_taux_rejet || []).slice(0, 30).map((r) => `
+        <tr>
+          <td>${r.productRef || ''}</td>
+          <td>${r.designation || ''}</td>
+          <td class="tr">${fmt.num(r.taux_rejet_pct || 0)}%</td>
+        </tr>
+      `).join('');
+      document.getElementById('tbody-q-expedie').innerHTML = (q.top_taux_expedie || []).slice(0, 30).map((r) => `
+        <tr>
+          <td>${r.productRef || ''}</td>
+          <td>${r.designation || ''}</td>
+          <td class="tr">${fmt.num(r.taux_expedie_pct || 0)}%</td>
+        </tr>
+      `).join('');
+
+      const geo = articles.distribution_geo || {};
+      const geoGlobalRows = [...(geo.top_global || [])];
+      if (articleUiState.geoGlobal.sort === 'vol_desc') geoGlobalRows.sort((a, b) => (b.volume_unites || 0) - (a.volume_unites || 0));
+      if (articleUiState.geoGlobal.sort === 'vol_asc') geoGlobalRows.sort((a, b) => (a.volume_unites || 0) - (b.volume_unites || 0));
+      if (articleUiState.geoGlobal.sort === 'pays_asc') geoGlobalRows.sort((a, b) => String(a.pays || '').localeCompare(String(b.pays || '')));
+      const geoGlobalPaged = pageSlice(geoGlobalRows, articleUiState.geoGlobal, 'geo-global-page-label');
+      document.getElementById('tbody-geo-global').innerHTML = geoGlobalPaged.map((r) => `
+        <tr>
+          <td>${r.pays || ''}</td>
+          <td>${r.ville || ''}</td>
+          <td>${r.cp || ''}</td>
+          <td class="tr">${fmt.num(r.volume_unites || 0)}</td>
+        </tr>
+      `).join('');
+      const geoArticleRows = [...(geo.top_par_article || [])];
+      if (articleUiState.geoArticle.sort === 'vol_desc') geoArticleRows.sort((a, b) => (b.volume_unites || 0) - (a.volume_unites || 0));
+      if (articleUiState.geoArticle.sort === 'vol_asc') geoArticleRows.sort((a, b) => (a.volume_unites || 0) - (b.volume_unites || 0));
+      if (articleUiState.geoArticle.sort === 'ref_asc') geoArticleRows.sort((a, b) => String(a.productRef || '').localeCompare(String(b.productRef || '')));
+      const geoArticlePaged = pageSlice(geoArticleRows, articleUiState.geoArticle, 'geo-article-page-label');
+      document.getElementById('tbody-geo-article').innerHTML = geoArticlePaged.map((r) => `
+        <tr>
+          <td>${r.productRef || ''}</td>
+          <td>${r.pays || ''}</td>
+          <td>${r.ville || ''}</td>
+          <td>${r.cp || ''}</td>
+          <td class="tr">${fmt.num(r.volume_unites || 0)}</td>
+        </tr>
+      `).join('');
+
+      const exports = articles.exports || [];
+      document.getElementById('articles-exports-links').innerHTML = exports.map((e) => `
+        <a class="tab" href="${e.file}" download style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">
+          ${e.label || e.code}
+        </a>
+      `).join('');
+
+      const abcSummary = (articles.abc_volume || {}).summary || [];
+      if (window._chartAbc) window._chartAbc.destroy();
+      window._chartAbc = new Chart(document.getElementById('chart-abc'), {
+        type: 'bar',
+        data: {
+          labels: abcSummary.map((x) => `Classe ${x.classe}`),
+          datasets: [{ label: 'Volume', data: abcSummary.map((x) => x.volume_unites), backgroundColor: '#0a84ff' }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+      });
+
+      const xyzSummary = (articles.xyz_variabilite || {}).summary || [];
+      if (window._chartXyz) window._chartXyz.destroy();
+      window._chartXyz = new Chart(document.getElementById('chart-xyz'), {
+        type: 'bar',
+        data: {
+          labels: xyzSummary.map((x) => `Classe ${x.classe}`),
+          datasets: [{ label: 'Volume', data: xyzSummary.map((x) => x.volume_unites), backgroundColor: '#16a085' }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+      });
+
+      const saisonMois = ((articles.demande || {}).saisonnalite || {}).mois || [];
+      if (window._chartSaison) window._chartSaison.destroy();
+      window._chartSaison = new Chart(document.getElementById('chart-saison'), {
+        type: 'line',
+        data: {
+          labels: saisonMois.map((x) => x.mois_nom),
+          datasets: [{ label: 'Unites', data: saisonMois.map((x) => x.volume_unites), borderColor: '#6366f1' }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+      });
+
+      const pics = ((articles.demande || {}).pics || []).slice(0, 12);
+      if (window._chartPics) window._chartPics.destroy();
+      window._chartPics = new Chart(document.getElementById('chart-pics'), {
+        type: 'bar',
+        data: {
+          labels: pics.map((x) => x.date),
+          datasets: [{ label: 'Unites', data: pics.map((x) => x.volume_unites), backgroundColor: '#f59e0b' }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+      });
+
+      const saisonJours = ((articles.demande || {}).saisonnalite || {}).jours || [];
+      if (window._chartSaisonJours) window._chartSaisonJours.destroy();
+      window._chartSaisonJours = new Chart(document.getElementById('chart-saison-jours'), {
+        type: 'bar',
+        data: {
+          labels: saisonJours.map((x) => x.jour),
+          datasets: [{ label: 'Unites', data: saisonJours.map((x) => x.volume_unites), backgroundColor: '#8b5cf6' }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+      });
+
+      const saisonHeures = ((articles.demande || {}).saisonnalite || {}).heures || [];
+      if (window._chartSaisonHeures) window._chartSaisonHeures.destroy();
+      window._chartSaisonHeures = new Chart(document.getElementById('chart-saison-heures'), {
+        type: 'line',
+        data: {
+          labels: saisonHeures.map((x) => `${x.heure}h`),
+          datasets: [{ label: 'Unites', data: saisonHeures.map((x) => x.volume_unites), borderColor: '#0ea5e9' }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+      });
+    }
+
+    async function loadData() {
+      const res = await fetch('dashboard_data_v2.json');
+      if (!res.ok) throw new Error('Impossible de charger dashboard_data_v2.json');
+      const data = await res.json();
+      currentData = data;
+      bindArticleControls();
+      renderMethodology(data);
+      renderExecutive(data);
+      renderInsights(data);
+      renderCommandes(data);
+      renderTransport(data);
+      renderArticles(data);
+    }
+
+    mountTabs();
+    setupTheme();
+    setupLogout();
+    setupKpiTitleTooltips();
+    loadData().catch((err) => {
+      document.getElementById('period').textContent = `Erreur: ${err.message}`;
+    });
+  </script>
+</body>
+</html>
